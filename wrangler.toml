@@ -1,0 +1,3 @@
+name = "clovalink-web"
+compatibility_date = "2025-12-22"
+assets = { directory = "./dist" }

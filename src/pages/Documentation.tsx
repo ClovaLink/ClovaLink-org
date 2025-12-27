@@ -175,6 +175,8 @@ const Documentation: React.FC = () => {
     const [files, setFiles] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+    const location = useLocation();
 
     const loadFiles = async () => {
         setLoading(true);
@@ -205,6 +207,11 @@ const Documentation: React.FC = () => {
         loadFiles();
     }, []);
 
+    // Close sidebar when navigating on mobile
+    useEffect(() => {
+        setSidebarOpen(false);
+    }, [location.pathname]);
+
     return (
         <div className="docs-layout">
             <ScrollToTop />
@@ -214,7 +221,18 @@ const Documentation: React.FC = () => {
                     50% { opacity: 0.5; }
                 }
             `}</style>
-            <aside className="docs-sidebar">
+            
+            {/* Mobile menu toggle button */}
+            <button
+                className="docs-menu-toggle"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                aria-label="Toggle documentation menu"
+            >
+                <span style={{ marginRight: '0.5rem' }}>{sidebarOpen ? '✕' : '☰'}</span>
+                {sidebarOpen ? 'Close Menu' : 'Docs Menu'}
+            </button>
+
+            <aside className={`docs-sidebar ${sidebarOpen ? 'open' : ''}`}>
                 <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>Guides</h3>
                 <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     {loading ? (

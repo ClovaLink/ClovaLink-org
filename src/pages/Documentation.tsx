@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 import { NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 
 // ============================================================================
@@ -241,19 +242,19 @@ const Documentation: React.FC = () => {
                         <ErrorDisplay message="Failed to load" onRetry={loadFiles} />
                     ) : (
                         files.map((filename) => (
-                            <NavLink
+                        <NavLink
                                 key={filename}
                                 to={`/docs/${filenameToSlug(filename)}`}
-                                style={({ isActive }) => ({
-                                    padding: '0.5rem',
-                                    borderRadius: '6px',
-                                    color: isActive ? '#000' : '#666',
-                                    backgroundColor: isActive ? '#f5f5f5' : 'transparent',
+                            style={({ isActive }) => ({
+                                padding: '0.5rem',
+                                borderRadius: '6px',
+                                color: isActive ? '#000' : '#666',
+                                backgroundColor: isActive ? '#f5f5f5' : 'transparent',
                                     fontWeight: isActive ? 600 : 400,
-                                })}
-                            >
+                            })}
+                        >
                                 {filenameToTitle(filename)}
-                            </NavLink>
+                        </NavLink>
                         ))
                     )}
                 </nav>
@@ -347,17 +348,33 @@ const DocViewer = ({ files }: { files: string[] }) => {
         return <ErrorDisplay message="Document not found" />;
     }
 
+    // Helper to resolve relative paths from wiki folder
+    const resolveImageSrc = (src: string): string => {
+        if (!src || src.startsWith('http')) return src;
+        // Handle relative paths like ../assets/screenshots/dashboard.png
+        // From docs/wiki/, ../ goes to docs/
+        if (src.startsWith('../')) {
+            const resolvedPath = src.replace('../', 'docs/');
+            return `https://raw.githubusercontent.com/${GITHUB_REPO}/main/${resolvedPath}`;
+        }
+        // Handle paths relative to wiki folder
+        return `https://raw.githubusercontent.com/${GITHUB_REPO}/main/${GITHUB_WIKI_PATH}/${src}`;
+    };
+
+    // Preprocess content to fix image URLs in raw HTML
+    const processedContent = content.replace(
+        /src=["'](\.\.\/)([^"']+)["']/g,
+        (_, prefix, path) => `src="https://raw.githubusercontent.com/${GITHUB_REPO}/main/docs/${path}"`
+    );
+
     return (
         <div className="markdown-body">
             <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeRaw]}
                 components={{
                     img: ({ node, ...props }) => {
-                        // Handle relative image paths from GitHub
-                        let src = props.src || '';
-                        if (src && !src.startsWith('http')) {
-                            src = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/${GITHUB_WIKI_PATH}/${src}`;
-                        }
+                        const src = resolveImageSrc(props.src || '');
                         return <img {...props} src={src} style={{ maxWidth: '100%' }} />;
                     },
                     table: ({ node, ...props }) => (
@@ -412,7 +429,7 @@ const DocViewer = ({ files }: { files: string[] }) => {
                     },
                 }}
             >
-                {content}
+                {processedContent}
             </ReactMarkdown>
         </div>
     );
